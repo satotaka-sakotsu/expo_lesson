@@ -1,16 +1,73 @@
-import React from "react";
+import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Button, Text, View } from "react-native";
+import {
+  StyleSheet,
+  Image,
+  Button,
+  Text,
+  View,
+  TouchableOpacity,
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import * as Sharing from "expo-sharing";
 import layoutStyles from "../styles/layout";
+
+type selectedImageType = {
+  loadUri: string;
+} | null;
 
 export default function HomeScreen(props: any) {
   const { navigation } = props;
+  const [selectedImage, setSelectedImage] = useState<selectedImageType>(null);
 
-  return (
+  const handleOpenImageAsync = async () => {
+    const permissionResult = await ImagePicker.requestCameraRollPermissionsAsync();
+    if (permissionResult.granted === false) {
+      alert("Permission to access camera roll is required!");
+      return;
+    }
+
+    const pickerResult = await ImagePicker.launchImageLibraryAsync();
+    if (pickerResult.cancelled === true) {
+      return;
+    }
+
+    setSelectedImage({ localUri: pickerResult.uri });
+  };
+
+  const handleShareDialogAsync = async () => {
+    if (!(await Sharing.isAvailableAsync())) {
+      alert(`Uh oh, sharing isn't available on your platform`);
+      return;
+    }
+
+    await Sharing.shareAsync(selectedImage.localUri);
+  };
+
+  return selectedImage !== null ? (
     <View style={layoutStyles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+      <Image
+        source={{ uri: selectedImage.localUri }}
+        style={styles.thumbnail}
+      />
+      <TouchableOpacity onPress={handleShareDialogAsync} style={styles.btnImg}>
+        <Text style={styles.textBtn}>Share this photo</Text>
+      </TouchableOpacity>
+    </View>
+  ) : (
+    <View style={layoutStyles.container}>
+      <Image
+        source={{ uri: "https://i.imgur.com/TkIrScD.png" }}
+        style={styles.logo}
+      />
+      <Text style={styles.instructions}>
+        Open up App.tsx to start working on your app!
+      </Text>
+      <TouchableOpacity style={styles.btnImg} onPress={handleOpenImageAsync}>
+        <Text style={styles.textBtn}>Pick a photo</Text>
+      </TouchableOpacity>
       <Button
-        title="Go to Details"
+        title="Go Detail Page"
         onPress={() => navigation.navigate("Details")}
       />
 
@@ -18,3 +75,31 @@ export default function HomeScreen(props: any) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  logo: {
+    width: 305,
+    height: 159,
+    marginBottom: 16,
+  },
+  instructions: {
+    color: "#888",
+    fontSize: 18,
+    marginHorizontal: 15,
+    marginBottom: 16,
+  },
+  btnImg: {
+    backgroundColor: "blue",
+    padding: 15,
+    marginBottom: 16,
+  },
+  textBtn: {
+    fontSize: 20,
+    color: "#fff",
+  },
+  thumbnail: {
+    width: 300,
+    height: 300,
+    resizeMode: "contain",
+  },
+});
